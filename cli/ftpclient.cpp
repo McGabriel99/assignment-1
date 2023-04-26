@@ -117,6 +117,7 @@ int connect_to_data_socket(int port) {
         if (connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
             //cerr << "Failed to connect to server" << endl;
             //exit(EXIT_FAILURE);
+            // If fail to connect, sleep and try again
             sleep(1);
             continue;
         }
@@ -147,7 +148,8 @@ int handle_commands(int control_socket) {
 }
 
 void send_command(int control_socket, const char* command) {
-    string command_with_terminator = string(command) + "\r\n";
+    //string command_with_terminator = string(command) + "\r\n";
+    string command_with_terminator = string(command);
     tcp_send(control_socket, command_with_terminator.c_str(), command_with_terminator.size(), nullptr);
 }
 
@@ -155,15 +157,23 @@ void send_command(int control_socket, const char* command) {
 
 int handle_get_command(int control_socket, const char* filename) {
     string command = "get " + string(filename);
+    //cout << command << "." << endl;
     send_command(control_socket, command.c_str());
-
+    cerr << "Recieving file size" << endl;
     int file_size = receive_file_size(control_socket);
     if (file_size == -1) {
         cout << "Error: File not found on the server." << endl;
         return 1;
     }
+    cerr << "File size recieved: " << file_size << endl;
 
-    int data_socket = create_data_socket();
+    char data_port_s[32];
+    // Recieve port number from server
+    tcp_recv(control_socket, data_port_s, sizeof(data_port_s) - 1);
+    int data_port = stoi(data_port_s);
+    cout << "Data Port: " << data_port << endl; 
+
+    int data_socket = connect_to_server(server_ip, data_port);
     receive_file(data_socket, filename, file_size);
     close(data_socket);
 
@@ -203,7 +213,7 @@ int handle_ls_command(int control_socket) {
     //cerr << "Client side data_port: " << data_port << endl;
 
     // Create a data connection to the server
-    int data_socket = connect_to_server(server_ip, data_port);
+    int data_socket = connect_to_data_socket(data_port);
     
     // Do ls
     receive_file_list(data_socket);
@@ -247,9 +257,10 @@ int receive_file(int data_socket, const char* filename, int file_size) {
 }
 
 int receive_file_size(int control_socket) {
-    int file_size;
-    tcp_recv(control_socket, &file_size, sizeof(file_size));
-    return ntohl(file_size);
+    char file_size_str[32];
+    tcp_recv(control_socket, file_size_str, sizeof(file_size_str)-1);
+    int  file_size = stoi(file_size_str);
+    return file_size;
 }
 
 int send_file(int data_socket, const char* filename, int file_size) {

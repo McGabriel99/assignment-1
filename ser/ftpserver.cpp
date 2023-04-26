@@ -275,6 +275,7 @@ void handle_client_commands(int control_socket) {
         if (command == "get") {
             string filename;
             iss >> filename;
+            //filename.pop_back();
             handle_get_command(control_socket, filename.c_str());
         } else if (command == "put") {
             string filename;
@@ -296,26 +297,26 @@ int handle_get_command(int control_socket, const char* filename) {
         cerr << "Failed to send file size" << endl;
         return -1;
     }
-
+    cerr << "File size: " << file_size << endl;
     int data_port = rand() % (65535 - 1024 + 1) + 1024;
     if (send_data_port(control_socket, data_port) < 0) {
         cerr << "Failed to send data port" << endl;
         return -1;
     }
-
+    cerr << "Data port: " << data_port << endl;
     int data_socket = create_data_socket(data_port);
     if (data_socket < 0) {
         cerr << "Failed to create data socket" << endl;
         return -1;
     }
-
+    cout << "Accepting connection" << endl;
     int client_data_socket = accept_data_connection(data_socket);
     if (client_data_socket < 0) {
         cerr << "Failed to accept data connection" << endl;
         close(data_socket);
         return -1;
     }
-
+    cout << "Connection accepted" << endl;
     if (send_file(client_data_socket, filename, file_size) < 0) {
         cerr << "Failed to send file" << endl;
         close(client_data_socket);
@@ -473,6 +474,7 @@ int send_file(int data_socket, const char* filename, int file_size) {
 
 int send_file_size(int control_socket, const char* filename) {
     struct stat file_stat;
+    //cout << "Filename: " << filename << "." << endl;
     if (stat(filename, &file_stat) < 0) {
         perror("stat");
         return -1;
@@ -481,11 +483,11 @@ int send_file_size(int control_socket, const char* filename) {
     char file_size_str[32];
     sprintf(file_size_str, "%d", file_size);
 
-    if (tcp_send(control_socket, file_size_str, strlen(file_size_str)) < 0) {
+    if (tcp_send(control_socket, file_size_str, sizeof(file_size_str)-1 ) < 0) {
         perror("tcp_send");
         return -1;
     }
-
+    //cerr << "Filesize sent" << endl;
     return file_size;
 }
 
