@@ -159,16 +159,16 @@ int handle_get_command(int control_socket, const char* filename) {
     string command = "get " + string(filename);
     //cout << command << "." << endl;
     send_command(control_socket, command.c_str());
-    cerr << "Recieving file size" << endl;
+    cerr << "Receiving file size" << endl;
     int file_size = receive_file_size(control_socket);
     if (file_size == -1) {
         cout << "Error: File not found on the server." << endl;
         return 1;
     }
-    cerr << "File size recieved: " << file_size << endl;
+    cerr << "File size received: " << file_size << endl;
 
     char data_port_s[32];
-    // Recieve port number from server
+    // Receive port number from server
     tcp_recv(control_socket, data_port_s, sizeof(data_port_s) - 1);
     int data_port = stoi(data_port_s);
     cout << "Data Port: " << data_port << endl; 
@@ -193,6 +193,7 @@ int handle_put_command(int control_socket, const char* filename) {
     send_file_size(control_socket, filename);
 
     int data_socket = create_data_socket();
+    cout << "Data socket: " << data_socket << endl;
     streampos file_size;
     file.seekg(0, ios::end);
     file_size = file.tellg();
@@ -203,6 +204,8 @@ int handle_put_command(int control_socket, const char* filename) {
 
     return 0;
 }
+
+
 
 int handle_ls_command(int control_socket) {
     char data_port_s[32];
@@ -246,9 +249,10 @@ int receive_file(int data_socket, const char* filename, int file_size) {
     int total_bytes_received = 0;
 
     while (total_bytes_received < file_size) {
-        bytes_received = tcp_recv(data_socket, buffer, sizeof(buffer), display_progress_bar);
+        bytes_received = tcp_recv(data_socket, buffer, sizeof(buffer));
         file.write(buffer, bytes_received);
         total_bytes_received += bytes_received;
+        display_progress_bar(total_bytes_received, file_size);
     }
 
     cout << "\nFile transfer completed." << endl;
@@ -274,11 +278,16 @@ int send_file(int data_socket, const char* filename, int file_size) {
     int bytes_read;
     int total_bytes_sent = 0;
 
+    int bytes_sent;
     while (total_bytes_sent < file_size) {
         file.read(buffer, sizeof(buffer));
         bytes_read = file.gcount();
+        bytes_sent = tcp_send(data_socket, buffer, bytes_read, display_progress_bar);
         tcp_send(data_socket, buffer, bytes_read, display_progress_bar);
+        cout << "Bytes sent in this iteration: " << bytes_sent << endl;
         total_bytes_sent += bytes_read;
+        
+        cout << "Bytes sent: " << total_bytes_sent << " / " << file_size << endl;
     }
 
     cout << "\nFile transfer completed." << endl;
@@ -286,25 +295,47 @@ int send_file(int data_socket, const char* filename, int file_size) {
     return 0;
 }
 
+// int send_file_size(int control_socket, const char* filename) {
+//     ifstream file(filename, ios::binary | ios::ate);
+//     if (!file.is_open()) {
+//         cout << "Error: Unable to open the file." << endl;
+//         return 1;
+//     }
+
+//     int file_size = static_cast<int>(file.tellg());
+//     file.close();
+//     int converted_size = htonl(file_size);
+//     tcp_send(control_socket, &converted_size, sizeof(converted_size));
+
+//     return 0;
+// }
 int send_file_size(int control_socket, const char* filename) {
-    ifstream file(filename, ios::binary | ios::ate);
+    ifstream file(filename, ios::binary);
     if (!file.is_open()) {
         cout << "Error: Unable to open the file." << endl;
-        return 1;
+        return -1;
     }
 
-    int file_size = static_cast<int>(file.tellg());
+    file.seekg(0, ios::end);
+    int file_size = file.tellg();
     file.close();
-    int converted_size = htonl(file_size);
-    tcp_send(control_socket, &converted_size, sizeof(converted_size));
 
+    char file_size_str[32];
+    sprintf(file_size_str, "%d", file_size);
+    if (tcp_send(control_socket, file_size_str, sizeof(file_size_str) - 1) < 0) {
+        perror("tcp_send");
+        return -1;
+    }
+    cout << "File size (sending): " << file_size << endl;
     return 0;
 }
+
 
 void display_progress_bar(long long current, long long total) {
     const int bar_width = 50;
     float progress = static_cast<float>(current) / total;
     int position = static_cast<int>(bar_width * progress);
+    cout << "Transferring file: ";
     cout << "[";
     for (int i = 0; i < bar_width; ++i) {
         if (i < position) {
