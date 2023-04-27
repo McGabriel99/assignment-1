@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
                     cerr << "Failed to handle GET command" << endl;
                 }
             } 
-            else if (command.substr(0, 3) == "PUT") {
+            else if (command.substr(0, 3) == "put") {
                 string filename = command.substr(4);
                 if (handle_put_command(client_control_socket, filename.c_str()) < 0) {
                     cerr << "Failed to handle PUT command" << endl;
@@ -341,11 +341,14 @@ int handle_put_command(int control_socket, const char* filename) {
         cerr << "Failed to send data port" << endl;
         return -1;
     }
+    cout << "File size: " << file_size << ", Data port: " << data_port << endl;
+
     int data_socket = create_data_socket(data_port);
     if (data_socket < 0) {
         cerr << "Failed to create data socket" << endl;
         return -1;
     }
+    cout << "data_socket: " << data_socket << endl;
     int client_data_socket = accept_data_connection(data_socket);
     if (client_data_socket < 0) {
         cerr << "Failed to accept data connection" << endl;
@@ -356,11 +359,16 @@ int handle_put_command(int control_socket, const char* filename) {
     // Close the data_socket as it's no longer needed
     close(data_socket);
 
+
+    cout << "Client connected, starting file reception" << endl;
+
     if (receive_file(client_data_socket, filename, file_size) < 0) {
         cerr << "Failed to receive file" << endl;
         close(client_data_socket);
         return -1;
     }
+
+    cout << "File received successfully" << endl;
 
     close(client_data_socket);
     return 0;
@@ -503,11 +511,11 @@ int receive_file(int data_socket, const char* filename, int file_size) {
     const int buffer_size = 1024;
     char buffer[buffer_size];
     long long bytes_received = 0;
-
+    
     while (bytes_received < file_size) {
         int bytes_to_receive = min(static_cast<long long>(buffer_size), file_size - bytes_received);
         int bytes_read = tcp_recv(data_socket, buffer, bytes_to_receive, display_progress_bar);
-
+        cout << "Bytes read: " << bytes_read << endl;
         if (bytes_read < 1) {
             perror("tcp_recv");
             fclose(file);
@@ -517,6 +525,8 @@ int receive_file(int data_socket, const char* filename, int file_size) {
         fwrite(buffer, 1, bytes_read, file);
         bytes_received += bytes_read;
         display_progress_bar(bytes_received, file_size);
+
+        cout << "Bytes received: " << bytes_received << " / " << file_size << endl;
     }
 
     // Close the file
@@ -541,6 +551,7 @@ void display_progress_bar(long long current, long long total) {
     const int bar_width = 50;
     float progress = static_cast<float>(current) / total;
     int position = static_cast<int>(bar_width * progress);
+    cout << "Transferring file:";
     cout << "[";
     for (int i = 0; i < bar_width; ++i) {
         if (i < position) {
