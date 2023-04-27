@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <ctime>
 #include <cstdlib>
 #include <sstream>
@@ -330,6 +331,50 @@ int handle_get_command(int control_socket, const char* filename) {
 }
 
 
+// int handle_put_command(int control_socket, const char* filename) {
+//     int file_size = receive_file_size(control_socket);
+//     if (file_size < 0) {
+//         cerr << "Failed to receive file size" << endl;
+//         return -1;
+//     }
+//     int data_port = rand() % (65535 - 1024 + 1) + 1024;
+//     if (send_data_port(control_socket, data_port) < 0) {
+//         cerr << "Failed to send data port" << endl;
+//         return -1;
+//     }
+//     cout << "File size: " << file_size << ", Data port: " << data_port << endl;
+
+//     int data_socket = create_data_socket(data_port);
+//     if (data_socket < 0) {
+//         cerr << "Failed to create data socket" << endl;
+//         return -1;
+//     }
+//     cout << "data_socket: " << data_socket << endl;
+//     int client_data_socket = accept_data_connection(data_socket);
+//     if (client_data_socket < 0) {
+//         cerr << "Failed to accept data connection" << endl;
+//         close(data_socket);
+//         return -1;
+//     }
+
+//     // Close the data_socket as it's no longer needed
+//     close(data_socket);
+
+
+//     cout << "Client connected, starting file reception" << endl;
+
+//     if (receive_file(client_data_socket, filename, file_size) < 0) {
+//         cerr << "Failed to receive file" << endl;
+//         close(client_data_socket);
+//         return -1;
+//     }
+
+//     cout << "File received successfully" << endl;
+
+//     close(client_data_socket);
+//     return 0;
+// }
+
 int handle_put_command(int control_socket, const char* filename) {
     int file_size = receive_file_size(control_socket);
     if (file_size < 0) {
@@ -341,14 +386,11 @@ int handle_put_command(int control_socket, const char* filename) {
         cerr << "Failed to send data port" << endl;
         return -1;
     }
-    cout << "File size: " << file_size << ", Data port: " << data_port << endl;
-
     int data_socket = create_data_socket(data_port);
     if (data_socket < 0) {
         cerr << "Failed to create data socket" << endl;
         return -1;
     }
-    cout << "data_socket: " << data_socket << endl;
     int client_data_socket = accept_data_connection(data_socket);
     if (client_data_socket < 0) {
         cerr << "Failed to accept data connection" << endl;
@@ -359,16 +401,11 @@ int handle_put_command(int control_socket, const char* filename) {
     // Close the data_socket as it's no longer needed
     close(data_socket);
 
-
-    cout << "Client connected, starting file reception" << endl;
-
     if (receive_file(client_data_socket, filename, file_size) < 0) {
         cerr << "Failed to receive file" << endl;
         close(client_data_socket);
         return -1;
     }
-
-    cout << "File received successfully" << endl;
 
     close(client_data_socket);
     return 0;
@@ -499,52 +536,81 @@ int send_file_size(int control_socket, const char* filename) {
     return file_size;
 }
 
-int receive_file(int data_socket, const char* filename, int file_size) {
-    // Open the file for writing
-    FILE* file = fopen(filename, "wb");
-    if (file == nullptr) {
-        perror("fopen");
-        return -1;
-    }
+// int receive_file(int data_socket, const char* filename, int file_size) {
+//     // Open the file for writing
+//     FILE* file = fopen(filename, "wb");
+//     if (file == nullptr) {
+//         perror("fopen");
+//         return -1;
+//     }
 
-    // Receive the file content in chunks
-    const int buffer_size = 1024;
-    char buffer[buffer_size];
-    long long bytes_received = 0;
+//     // Receive the file content in chunks
+//     const int buffer_size = 1024;
+//     char buffer[buffer_size];
+//     long long bytes_received = 0;
     
-    while (bytes_received < file_size) {
-        int bytes_to_receive = min(static_cast<long long>(buffer_size), file_size - bytes_received);
-        int bytes_read = tcp_recv(data_socket, buffer, bytes_to_receive, display_progress_bar);
-        cout << "Bytes read: " << bytes_read << endl;
-        if (bytes_read < 1) {
-            perror("tcp_recv");
-            fclose(file);
-            return -1;
-        }
+//     while (bytes_received < file_size) {
+//         int bytes_to_receive = min(static_cast<long long>(buffer_size), file_size - bytes_received);
+//         int bytes_read = tcp_recv(data_socket, buffer, bytes_to_receive, display_progress_bar);
+//         cout << "Bytes read: " << bytes_read << endl;
+//         if (bytes_read < 1) {
+//             perror("tcp_recv");
+//             fclose(file);
+//             return -1;
+//         }
 
-        fwrite(buffer, 1, bytes_read, file);
-        bytes_received += bytes_read;
-        display_progress_bar(bytes_received, file_size);
+//         fwrite(buffer, 1, bytes_read, file);
+//         bytes_received += bytes_read;
+//         display_progress_bar(bytes_received, file_size);
 
-        cout << "Bytes received: " << bytes_received << " / " << file_size << endl;
+//         cout << "Bytes received: " << bytes_received << " / " << file_size << endl;
+//     }
+
+//     // Close the file
+//     fclose(file);
+//     return 0;
+// }
+
+int receive_file(int data_socket, const char* filename, int file_size) {
+    ofstream file(filename, ios::binary);
+    if (!file.is_open()) {
+        cout << "Error: Unable to create the file." << endl;
+        return 1;
     }
 
-    // Close the file
-    fclose(file);
+    char buffer[1024];
+    int bytes_received;
+    int total_bytes_received = 0;
+
+    while (total_bytes_received < file_size) {
+        bytes_received = tcp_recv(data_socket, buffer, sizeof(buffer));
+        file.write(buffer, bytes_received);
+        total_bytes_received += bytes_received;
+        display_progress_bar(total_bytes_received, file_size);
+    }
+
+    cout << "\nFile transfer completed." << endl;
+    file.close();
     return 0;
 }
 
 
+// int receive_file_size(int control_socket) {
+//     char file_size_str[32];
+//     memset(file_size_str, 0, sizeof(file_size_str));
+//     if (tcp_recv(control_socket, file_size_str, sizeof(file_size_str)) < 0) {
+//         perror("tcp_recv");
+//         return -1;
+//     }
+
+//     return atoi(file_size_str);
+// }
 
 int receive_file_size(int control_socket) {
     char file_size_str[32];
-    memset(file_size_str, 0, sizeof(file_size_str));
-    if (tcp_recv(control_socket, file_size_str, sizeof(file_size_str)) < 0) {
-        perror("tcp_recv");
-        return -1;
-    }
-
-    return atoi(file_size_str);
+    tcp_recv(control_socket, file_size_str, sizeof(file_size_str)-1);
+    int  file_size = stoi(file_size_str);
+    return file_size;
 }
 
 void display_progress_bar(long long current, long long total) {
@@ -565,4 +631,6 @@ void display_progress_bar(long long current, long long total) {
 
     cout << "] " << static_cast<int>(progress * 100.0) << " %\r";
     cout.flush();
+
+    cout << endl;
 }
