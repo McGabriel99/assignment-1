@@ -173,7 +173,7 @@ int handle_get_command(int control_socket, const char* filename) {
     int data_port = stoi(data_port_s);
     cout << "Data Port: " << data_port << endl; 
 
-    int data_socket = connect_to_server(server_ip, data_port);
+    int data_socket = connect_to_data_socket(data_port);
     receive_file(data_socket, filename, file_size);
     close(data_socket);
 
