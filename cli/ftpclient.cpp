@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -20,6 +21,7 @@ using namespace std;
 
 int create_client_socket();
 int create_data_socket();
+int receive_data_port(int control_socket, int data_port);
 int connect_to_server(const char* server_ip, int port);
 int handle_commands(int control_socket);
 void send_command(int control_socket, const char* command);
@@ -87,6 +89,16 @@ int create_client_socket() {
 
 int create_data_socket() {
     return create_client_socket();
+}
+
+int receive_data_port(int control_socket, int data_port){
+    char data_port_s[32];
+    sprintf(data_port_s, "%d", data_port);
+    if (tcp_recv(control_socket, data_port_s, sizeof(data_port_s) - 1) < 0){
+        perror("tcp_recv");
+        return -1;
+    }
+    return 0;
 }
 
 int connect_to_server(const char* server_ip, int port) {
@@ -180,6 +192,31 @@ int handle_get_command(int control_socket, const char* filename) {
     return 0;
 }
 
+// int handle_put_command(int control_socket, const char* filename) {
+//     ifstream file(filename, ios::binary);
+//     if (!file.is_open()) {
+//         cout << "Error: Unable to open the file." << endl;
+//         return 1;
+//     }
+
+//     string command = "put " + string(filename);
+//     send_command(control_socket, command.c_str());
+
+//     send_file_size(control_socket, filename);
+
+//     int data_socket = create_data_socket();
+//     cout << "Data socket: " << data_socket << endl;
+//     streampos file_size;
+//     file.seekg(0, ios::end);
+//     file_size = file.tellg();
+//     file.seekg(0, ios::beg);
+
+//     send_file(data_socket, filename, static_cast<int>(file_size));
+//     close(data_socket);
+
+//     return 0;
+// }
+
 int handle_put_command(int control_socket, const char* filename) {
     ifstream file(filename, ios::binary);
     if (!file.is_open()) {
@@ -189,22 +226,27 @@ int handle_put_command(int control_socket, const char* filename) {
 
     string command = "put " + string(filename);
     send_command(control_socket, command.c_str());
+    
+    int file_size = send_file_size(control_socket, filename);
+    if (file_size < 0){
+        cerr << "Failed to send file size" << endl;
+        return -1;
+    }
+    cerr << "File size: " << file_size << endl;
 
-    send_file_size(control_socket, filename);
+    char data_port_s[32];
+    // Receive port number from server
+    tcp_recv(control_socket, data_port_s, sizeof(data_port_s) - 1);
+    int data_port = stoi(data_port_s);
+    cout << "Data Port: " << data_port << endl;
 
-    int data_socket = create_data_socket();
-    cout << "Data socket: " << data_socket << endl;
-    streampos file_size;
-    file.seekg(0, ios::end);
-    file_size = file.tellg();
-    file.seekg(0, ios::beg);
+    int data_socket = connect_to_data_socket(data_port);
 
-    send_file(data_socket, filename, static_cast<int>(file_size));
+    send_file(data_socket, filename, file_size);
     close(data_socket);
 
     return 0;
 }
-
 
 
 int handle_ls_command(int control_socket) {
@@ -267,69 +309,110 @@ int receive_file_size(int control_socket) {
     return file_size;
 }
 
-int send_file(int data_socket, const char* filename, int file_size) {
-    ifstream file(filename, ios::binary);
-    if (!file.is_open()) {
-        cout << "Error: Unable to open the file." << endl;
-        return 1;
-    }
-
-    char buffer[1024];
-    int bytes_read;
-    int total_bytes_sent = 0;
-
-    int bytes_sent;
-    while (total_bytes_sent < file_size) {
-        file.read(buffer, sizeof(buffer));
-        bytes_read = file.gcount();
-        bytes_sent = tcp_send(data_socket, buffer, bytes_read, display_progress_bar);
-        tcp_send(data_socket, buffer, bytes_read, display_progress_bar);
-        cout << "Bytes sent in this iteration: " << bytes_sent << endl;
-        total_bytes_sent += bytes_read;
-        
-        cout << "Bytes sent: " << total_bytes_sent << " / " << file_size << endl;
-    }
-
-    cout << "\nFile transfer completed." << endl;
-    file.close();
-    return 0;
-}
-
-// int send_file_size(int control_socket, const char* filename) {
-//     ifstream file(filename, ios::binary | ios::ate);
+// int send_file(int data_socket, const char* filename, int file_size) {
+//     ifstream file(filename, ios::binary);
 //     if (!file.is_open()) {
 //         cout << "Error: Unable to open the file." << endl;
 //         return 1;
 //     }
 
-//     int file_size = static_cast<int>(file.tellg());
-//     file.close();
-//     int converted_size = htonl(file_size);
-//     tcp_send(control_socket, &converted_size, sizeof(converted_size));
+//     char buffer[1024];
+//     int bytes_read;
+//     int total_bytes_sent = 0;
 
+//     int bytes_sent;
+//     while (total_bytes_sent < file_size) {
+//         file.read(buffer, sizeof(buffer));
+//         bytes_read = file.gcount();
+//         bytes_sent = tcp_send(data_socket, buffer, bytes_read, display_progress_bar);
+//         tcp_send(data_socket, buffer, bytes_read, display_progress_bar);
+//         cout << "Bytes sent in this iteration: " << bytes_sent << endl;
+//         total_bytes_sent += bytes_read;
+        
+//         cout << "Bytes sent: " << total_bytes_sent << " / " << file_size << endl;
+//     }
+
+//     cout << "\nFile transfer completed." << endl;
+//     file.close();
 //     return 0;
 // }
-int send_file_size(int control_socket, const char* filename) {
-    ifstream file(filename, ios::binary);
-    if (!file.is_open()) {
-        cout << "Error: Unable to open the file." << endl;
+
+int send_file(int data_socket, const char* filename, int file_size) {
+    // Open the file for reading
+    FILE* file = fopen(filename, "rb");
+    if (file == nullptr) {
+        perror("fopen");
         return -1;
     }
 
-    file.seekg(0, ios::end);
-    int file_size = file.tellg();
-    file.close();
+    // Send the file content in chunks
+    const int buffer_size = 1024;
+    char buffer[buffer_size];
+    long long bytes_sent = 0;
 
-    char file_size_str[32];
-    sprintf(file_size_str, "%d", file_size);
-    if (tcp_send(control_socket, file_size_str, sizeof(file_size_str) - 1) < 0) {
-        perror("tcp_send");
-        return -1;
+    while (bytes_sent < file_size) {
+        size_t bytes_to_send = min(static_cast<long long>(buffer_size), file_size - bytes_sent);
+        size_t bytes_read = fread(buffer, 1, bytes_to_send, file);
+
+        if (bytes_read < 1) {
+            perror("fread");
+            fclose(file);
+            return -1;
+        }
+
+        if (tcp_send(data_socket, buffer, bytes_read) < 0) {
+            perror("tcp_send");
+            fclose(file);
+            return -1;
+        }
+
+        bytes_sent += bytes_read;
+        display_progress_bar(bytes_sent, file_size);
     }
-    cout << "File size (sending): " << file_size << endl;
+
+    // Close the file
+    fclose(file);
     return 0;
 }
 
+// int send_file_size(int control_socket, const char* filename) {
+//     ifstream file(filename, ios::binary);
+//     if (!file.is_open()) {
+//         cout << "Error: Unable to open the file." << endl;
+//         return -1;
+//     }
+
+//     file.seekg(0, ios::end);
+//     int file_size = file.tellg();
+//     file.close();
+
+//     char file_size_str[32];
+//     sprintf(file_size_str, "%d", file_size);
+//     if (tcp_send(control_socket, file_size_str, sizeof(file_size_str) - 1) < 0) {
+//         perror("tcp_send");
+//         return -1;
+//     }
+//     cout << "File size (sending): " << file_size << endl;
+//     return 0;
+// }
+int send_file_size(int control_socket, const char* filename) {
+    struct stat file_stat;
+    //cout << "Filename: " << filename << "." << endl;
+    if (stat(filename, &file_stat) < 0) {
+        perror("stat");
+        return -1;
+    }
+    int file_size = file_stat.st_size;
+    char file_size_str[32];
+    sprintf(file_size_str, "%d", file_size);
+
+    if (tcp_send(control_socket, file_size_str, sizeof(file_size_str)-1 ) < 0) {
+        perror("tcp_send");
+        return -1;
+    }
+    //cerr << "Filesize sent" << endl;
+    return file_size;
+}
 
 void display_progress_bar(long long current, long long total) {
     const int bar_width = 50;
@@ -349,4 +432,5 @@ void display_progress_bar(long long current, long long total) {
 
     cout << "] " << static_cast<int>(progress * 100.0) << " %\r";
     cout.flush();
+    cout << endl;
 }
