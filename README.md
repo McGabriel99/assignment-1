@@ -1,5 +1,5 @@
 # assignment-1 - FTP Client-Server
-##CPSC 471 Computer Commnunications - Programming Assignment
+## CPSC 471 Computer Commnunications - Programming Assignment
 
 ## Table of Contents
 1. [Problem description](#problem-description)
