@@ -8,7 +8,7 @@
 4. [Programming Language Used](#programming-language-used)
 5. [How to Execute](#how-to-execute)
 6. [How the program works](#how-the-program-works)
-
+***
 ### Problem description:
 Implement a simplified FTP server and FTP client. The client connects to the server and support uploading and downloading of files to/from the server using TCP/IP.
 
