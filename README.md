@@ -1,5 +1,14 @@
-# assignment-1
-##CPSC 471 Programming Assignment #1
+# assignment-1 - FTP Client-Server
+##CPSC 471 Computer Commnunications - Programming Assignment
+
+### Problem description:
+Implement a simplified FTP server and FTP client. The client connects to the server and support uploading and downloading of files to/from the server using TCP/IP.
+
+### Goals:
+1. To understand the challenges of protocol design
+2. To discover and appreciate the challenges of developing complex, real-world network applications
+3. Make sense of real-world sockets programming APIs
+4. To utilize a sockets programming API to construct simplified FTP server and client applications
 
 ***
 
@@ -42,6 +51,16 @@ $ ./server <port number>
 ```
 2. In Client terminal
 ```
-./client <IP addr> <server port number>
+./client <IP addr> <server's port number>
+```
+
+***
+### How the program works:
+Once the FTP server and client programs are running, the **client** program can run these following commands:
+```
+* get <filename> - client downloads <filename> from the server
+* put <filename> - client uploads <filename> to the server
+* ls - client receives file list from the server's directory
+* quit - terminates session between client and server
 ```
 
