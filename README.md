@@ -1,6 +1,9 @@
 # assignment-1 - FTP Client-Server
 ##CPSC 471 Computer Commnunications - Programming Assignment
 
+## Table of Contents
+1. [Problem description](#problem-description)
+
 ### Problem description:
 Implement a simplified FTP server and FTP client. The client connects to the server and support uploading and downloading of files to/from the server using TCP/IP.
 
