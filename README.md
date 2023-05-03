@@ -12,7 +12,6 @@ Alex Chavez: schavez95@csu.fullerton.edu
 ```
 ***
 ### Programming Language Used: ```C/C++```
-***
 
 ***
 ### How to Execute:
