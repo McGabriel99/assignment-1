@@ -58,9 +58,9 @@ $ ./server <port number>
 ### How the program works:
 Once the FTP server and client programs are running, the **client** program can run these following commands:
 ```
-* get <filename> - client downloads <filename> from the server
-* put <filename> - client uploads <filename> to the server
-* ls - client receives file list from the server's directory
-* quit - terminates session between client and server
+$ get <filename> - client downloads <filename> from the server
+$ put <filename> - client uploads <filename> to the server
+$ ls - client receives file list from the server's directory
+$ quit - terminates session between client and server
 ```
 
