@@ -1,6 +1,7 @@
 # assignment-1
 ##CPSC 471 Programming Assignment #1
 
+***
 
 ### Group members:
 ```
@@ -9,14 +10,25 @@ Nathan Mayne: nmayne3@gmail.com
 Harry Dinh: 
 Alex Chavez: schavez95@csu.fullerton.edu
 ```
-
+***
 ### Programming Language Used: ```C/C++```
-
+***
 ### How to Execute:
+
+#### Step 1:
 ```
-1. O
-2. 
+$ git clone <repo>
+$ cd ../path/to/the/file
 ```
+#### Step 2:
+```
+$ make clean --> to delete executables
+$ make
+```
+#### Step 3:
+1. Open new terminal for client
+ * cd cli/
+2. Open new terminal for 
 
 
 
