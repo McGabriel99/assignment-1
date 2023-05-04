@@ -23,7 +23,7 @@ Implement a simplified FTP server and FTP client. The client connects to the ser
 ### Group members:
 ```
 Mc Gabriel Fernandez: mcgabrielf@csu.fullerton.edu
-Nathan Mayne: nmayne3@gmail.com
+Nathan Mayne: nmayne3@csu.fullerton.edu
 Harry Dinh: 20hdinh@csu.fullerton.edu
 Alex Chavez: schavez95@csu.fullerton.edu
 ```
