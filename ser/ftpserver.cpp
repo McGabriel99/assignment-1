@@ -1,23 +1,11 @@
-#include <iostream>
-#include <fstream>
-#include <ctime>
-#include <cstdlib>
-#include <sstream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include "../TCPLib.h" //for tcp_send, tcp_recv
+#include <iostream>        //for cout, cerr
+#include <fstream>         //for ifstream, ofstream
+#include <ctime>           //for time
+#include <sys/stat.h>      //for stat to get file size
+#include <dirent.h>        //for DIR, opendir, readdir, closedir
+#include "../TCPLib.h"     //for tcp_send, tcp_recv
 
 #define BUFFER_SIZE 1024
-
 
 using std::cout;
 using std::cerr;

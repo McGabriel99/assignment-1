@@ -12,10 +12,10 @@
 #include <netinet/in.h> /* Contains constants and structures needed for internet domain addresses. */
 #include <unistd.h>     /* Contains standard unix functions */
 #include <stdlib.h>     /* For atoi() and exit() */
-#include <string.h> 	/* For memset() */
+#include <string.h> 	/* For memset(), c.str() */
 #include <arpa/inet.h>  /* For inet_pton() */
 #include <time.h>       /* For retrieving the time */
-#include <limits.h>	/* For the maximum integer size */
+#include <limits.h>	    /* For the maximum integer size */
 #include <cstdlib>  
 #include <cstddef>
 
@@ -27,6 +27,7 @@
  * @param socket - the socket to use for sending
  * @param buffer - the buffer to send
  * @param buffSize - the size of the buffer
+ * @param progress_callback - a callback function to call after each transmission
  * @return - the number of bytes transmitted, or -1 on error 
  */
 int tcp_send(int socket, const void* buffer, int buffSize, void (*progress_callback)(long long, long long) = nullptr);
@@ -37,25 +38,9 @@ int tcp_send(int socket, const void* buffer, int buffSize, void (*progress_callb
  * @param socket - the socket to use for sending
  * @param buffer - the buffer to send
  * @param buffSize - the size of the buffer
+ * @param progress_callback - a callback function to call after each transmission
  * @return - the number of bytes transmitted, or -1 on error 
  */
 int tcp_recv(int socket, void* buffer, int buffSize, void (*progress_callback)(long long, long long) = nullptr);
-
-
-/**
- * Stringifies an integer, saves it into array of
- * size SIZE_MSG_SIZE, and sends it over the socket
- * @return - SIZE_MSG_SIZE on success, -1 on failure
- */
-int tcp_send_size(int socket, int size);
-
-/** 
- * Receives size. Assumes the size of the message containing the
- * size is SIZE_MSG_SIZE. The message is then converted from string
- * to integer, and returns the size
- * @param socket - the socket to receive the size from
- * @return - the size, or -1 on error
- */
-int tcp_recv_size(int socket);
 
 #endif
