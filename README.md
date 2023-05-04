@@ -59,7 +59,7 @@ $ ./server <port number>
 ```
 2. In Client terminal
 ```
-./client <IP addr> <server's port number>
+$ ./client <IP addr> <server's port number>
 ```
 
 ***
