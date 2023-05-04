@@ -25,7 +25,6 @@ int create_data_socket(int port);
 int send_data_port(int control_socket, int data_port);
 int accept_client_connection(int server_socket);
 int accept_data_connection(int server_socket);
-void handle_client_commands(int control_socket);
 int receive_command(int control_socket, string &out_command);
 int handle_get_command(int control_socket, const char* filename);
 int handle_put_command(int control_socket, const char* filename);
