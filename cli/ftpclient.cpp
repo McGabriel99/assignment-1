@@ -1,23 +1,11 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <cstring>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include "../TCPLib.h" //for tcp_send, tcp_recv
-
+#include <iostream>        //for cout, cerr
+#include <fstream>         //for ifstream, ofstream
+#include <string>          //for string
+#include <sys/stat.h>      //for stat and fstat to get file size      
+#include "../TCPLib.h"     //for tcp_send, tcp_recv
 
 #define BUFFER_SIZE 1024
 
-using namespace std;
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -26,6 +14,8 @@ using std::ifstream;
 using std::ofstream;
 using std::stringstream;
 using std::ios;
+using std::getline;
+using std::cin;
 using std::stoi;
 using std::rand;
 using std::srand;
